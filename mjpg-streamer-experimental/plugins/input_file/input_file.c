@@ -39,7 +39,8 @@
 
 typedef enum _read_mode {
     NewFilesOnly,
-    ExistingFiles
+    ExistingFiles,
+	SingleFile
 } read_mode;
 
 /* private functions and variables to this plugin */
@@ -56,6 +57,7 @@ static char *filename = NULL;
 static int rm = 0;
 static int plugin_number;
 static read_mode mode = NewFilesOnly;
+static char *siglefilename = NULL;
 
 /* global variables for this plugin */
 static int fd, rc, wd, size;
@@ -78,8 +80,7 @@ int input_init(input_parameter *param, int id)
     while(1) {
         int option_index = 0, c = 0;
         static struct option long_options[] = {
-            {"h", no_argument, 0, 0
-            },
+            {"h", no_argument, 0, 0 },
             {"help", no_argument, 0, 0},
             {"d", required_argument, 0, 0},
             {"delay", required_argument, 0, 0},
@@ -91,6 +92,8 @@ int input_init(input_parameter *param, int id)
             {"name", required_argument, 0, 0},
             {"e", no_argument, 0, 0},
             {"existing", no_argument, 0, 0},
+			{"s", required_argument, 0, 0},
+			{"siglefile", required_argument, 0, 0},
             {0, 0, 0, 0}
         };
 
@@ -150,6 +153,14 @@ int input_init(input_parameter *param, int id)
         case 11:
             DBG("case 10,11\n");
             mode = ExistingFiles;
+            break;
+		case 12:
+        case 13:
+            DBG("case 12,13\n");
+            siglefilename = malloc(strlen(optarg) + 1);
+            strcpy(siglefilename, optarg);
+			mode = SingleFile;
+			IPRINT("siglefilename to show...: %s\n", siglefilename);
             break;
         default:
             DBG("default case\n");
@@ -232,6 +243,7 @@ void help(void)
     " [-r | --remove ].......: remove/delete JPEG file after reading\n" \
     " [-n | --name ].........: ignore changes unless filename matches\n" \
     " [-e | --existing ].....: serve the existing *.jpg files from the specified directory\n" \
+	" [-s | --siglefile ].....: siglefile .jpg files from the specified directory\n" \
     " ---------------------------------------------------------------\n");
 }
 
@@ -288,7 +300,7 @@ void *worker_thread(void *arg)
                 continue;
             }
             DBG("new file detected: %s\n", buffer);
-        } else {
+        } else if(mode == ExistingFiles){
             if ((strstr(fileList[currentFileNumber]->d_name, ".jpg") != NULL) ||
                 (strstr(fileList[currentFileNumber]->d_name, ".JPG") != NULL)) {
                 hasJpgFile = 1;
@@ -310,13 +322,19 @@ void *worker_thread(void *arg)
                 }
                 continue;
             }
-        }
+        }else if(mode == SingleFile){
+                snprintf(buffer, sizeof(buffer), "%s", siglefilename);			
+		}
 
         /* open file for reading */
+		//perror(buffer);
+		//usleep(100 * 1000); //1ms
+		//perror(buffer);
         rc = file = open(buffer, O_RDONLY);
         if(rc == -1) {
-            perror("could not open file for reading");
-            break;
+			perror(buffer);
+            perror("could not open file for reading.");
+            continue;
         }
 
         /* approximate size of file */
@@ -324,7 +342,7 @@ void *worker_thread(void *arg)
         if(rc == -1) {
             perror("could not read statistics of file");
             close(file);
-            break;
+            continue;
         }
 
         filesize = stats.st_size;
@@ -348,7 +366,7 @@ void *worker_thread(void *arg)
             free(pglobal->in[plugin_number].buf); pglobal->in[plugin_number].buf = NULL; pglobal->in[plugin_number].size = 0;
             pthread_mutex_unlock(&pglobal->in[plugin_number].db);
             close(file);
-            break;
+            continue;
         }
 
         gettimeofday(&timestamp, NULL);
@@ -368,7 +386,7 @@ void *worker_thread(void *arg)
             }
         }
 
-		if( mode == ExistingFiles ){			
+		if( mode != NewFilesOnly ){			
 			if(delay != 0)
 				usleep(1000 * 1000 * delay);
 		}
