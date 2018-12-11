@@ -368,8 +368,10 @@ void *worker_thread(void *arg)
             }
         }
 
-        if(delay != 0)
-            usleep(1000 * 1000 * delay);
+		if( mode == ExistingFiles ){			
+			if(delay != 0)
+				usleep(1000 * 1000 * delay);
+		}
     }
 
 thread_quit:
