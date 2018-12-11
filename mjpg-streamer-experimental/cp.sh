@@ -8,26 +8,19 @@ export LD_LIBRARY_PATH="$(pwd)"
 
 mkdir -p /tmp/input
 
-rm /tmp/input/*.jpg
-
 #while true; do xwd -root | convert - -scale 640 /tmp/input/bla.jpg; sleep 0.5; done &
 
-str=""
-
-cmd='./a.out'
-
-count=0
+str=`date "+%Y-%m-%d %H:%M:%S.%N"`
 
 while :
 do
-	count=$(( $count+1 ))
 	str=`date "+%Y-%m-%d_%H:%M:%S.%N"`
-	#str=`date "+%S.%N"`
-	#echo "    $str"
-	convert -fill red -pointsize 80 -draw "text 10,350 \"$count\"" /tmp/mem/file.jpg /tmp/mem/input/$str.jpg
-	#convert -fill red -pointsize 240 -draw "text 10,350 \"$count\"" file.jpg /tmp/input/$count.jpg
-	echo  $cmd "text 10,20 \"$str:$count\""
-	#sleep 1.0
+	#echo ./a.out "text 10,20  \"$str\""
+	echo "    $str"
+	#convert  -fill red -pointsize 180 -draw "text 10,350 \"$str\"" file.jpg /tmp/input/$str.jpg
+	#cp file.jpg  /tmp/input/$str.jpg
+	cp /tmp/mem/file.jpg  /tmp/mem/input/$str.jpg
+    #sleep 0.2 
 done	
 
 ## Then the files can be read from the folder "/tmp/input" and served via HTTP
